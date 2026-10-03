@@ -48,7 +48,6 @@ palos.addEventListener('click', (ev) => {
   actualizar();
 });
 pintarPalos();
-palos.querySelector('[aria-checked="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
 
 // Pestañas
 const pintarPestanas = () => {

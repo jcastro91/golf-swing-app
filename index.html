@@ -80,14 +80,17 @@
   <section class="visor" aria-label="Maniquí 3D">
     <canvas id="lienzo" aria-label="Maniquí 3D con tu golpe y uno bien pegado"></canvas>
     <div class="ley"><span class="mio">Mi golpe</span><span class="ideal">Bien pegado</span></div>
+    <p class="nota giro">Gira con dos dedos</p>
     <div class="ctrl">
       <button type="button" data-vista="frente" aria-pressed="true">De frente</button>
       <button type="button" data-vista="atras" aria-pressed="false">Desde atrás</button>
+    </div>
+    <div class="ctrl">
       <button type="button" id="repetir">Repetir</button>
       <button type="button" id="lento" aria-pressed="false">Lento</button>
     </div>
     <input id="tiempo" class="tiempo" type="range" min="0" max="1000" value="1000" aria-label="Momento del swing">
-    <p class="nota">Los desplazamientos están exagerados para que se noten en el celular, y el vuelo de la bola no está a escala. La raya en el piso marca el punto más bajo del swing; la línea azul que sube desde la bola es el plano. Gira la vista con el dedo.</p>
+    <p class="nota">Los desplazamientos están exagerados para que se noten en el celular, y el vuelo de la bola no está a escala. La raya en el piso marca el punto más bajo del swing; la línea azul que sube desde la bola es el plano.</p>
     <p class="nota" id="nota-pantalla" hidden>Este iPhone puede apagar la pantalla. Si te estorba, sube el bloqueo automático en Ajustes, Pantalla y brillo.</p>
   </section>
   <button type="button" class="nuevo" id="nuevo">Nuevo tiro</button>

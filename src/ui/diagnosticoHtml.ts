@@ -13,7 +13,7 @@ export function htmlTabla(filas: Fila[]): string {
   const tr = filas
     .map(
       (f) =>
-        `<tr><th>${TITULO[f.area]}</th><td>${f.valor}</td><td class="rango">${f.rango}</td>` +
+        `<tr><th>${TITULO[f.area]}</th><td><b>${f.valor}</b><span class="rango">${f.rango}</span></td>` +
         `<td class="est">${f.ok ? 'EN RANGO' : 'FUERA'}</td></tr>`,
     )
     .join('');

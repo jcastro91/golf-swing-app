@@ -12,6 +12,7 @@ import {
   PlaneGeometry,
   Scene,
   SphereGeometry,
+  TOUCH,
   TubeGeometry,
   Vector3,
   WebGLRenderer,
@@ -156,6 +157,10 @@ export class Visor {
     );
 
     this.controls = new OrbitControls(this.camera, canvas);
+    // Un dedo hace scroll de la página (touch-action: pan-y en el CSS); dos dedos giran la cámara.
+    canvas.style.touchAction = '';
+    this.controls.touches = { ONE: -1 as TOUCH, TWO: TOUCH.DOLLY_ROTATE };
+    this.controls.enableZoom = false;
     this.controls.enablePan = false;
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.12;
@@ -169,6 +174,12 @@ export class Visor {
     });
     this.controls.addEventListener('end', () => (this.interactuando = false));
     this.controls.addEventListener('change', () => this.pedir());
+
+    // Con dos dedos, iOS haría zoom o scroll de la página en vez de girar el maniquí.
+    const sinGesto = (e: Event) => e.preventDefault();
+    canvas.addEventListener('gesturestart', sinGesto);
+    canvas.addEventListener('gesturechange', sinGesto);
+    canvas.addEventListener('touchmove', (e) => e.touches.length > 1 && e.preventDefault(), { passive: false });
 
     new ResizeObserver(() => this.ajustar()).observe(canvas);
     document.addEventListener('visibilitychange', () => {
@@ -202,9 +213,13 @@ export class Visor {
 
   setVista(v: Vista) {
     const c = CAMARAS[v];
+    // Sin damping, update() consume la inercia que quedaba del giro con los dedos.
+    this.controls.enableDamping = false;
+    this.controls.update();
     this.camera.position.set(...c.pos);
     this.controls.target.set(...c.obj);
     this.controls.update();
+    this.controls.enableDamping = true;
     this.pedir();
   }
 
