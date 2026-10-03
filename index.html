@@ -78,19 +78,28 @@
   </section>
 
   <section class="visor" aria-label="Maniquí 3D">
-    <canvas id="lienzo" aria-label="Maniquí 3D con tu golpe y uno bien pegado"></canvas>
+    <div class="lienzo-caja">
+      <canvas id="lienzo" aria-label="Maniquí 3D con tu golpe y uno bien pegado"></canvas>
+      <div class="etiquetas" aria-hidden="true"></div>
+    </div>
     <div class="ley"><span class="mio">Mi golpe</span><span class="ideal">Bien pegado</span></div>
     <p class="nota giro">Gira con dos dedos</p>
-    <div class="ctrl">
+    <div class="ctrl tres">
       <button type="button" data-vista="frente" aria-pressed="true">De frente</button>
       <button type="button" data-vista="atras" aria-pressed="false">Desde atrás</button>
+      <button type="button" data-vista="impacto" aria-pressed="false">Impacto</button>
+    </div>
+    <div class="ctrl tres" role="group" aria-label="Qué figura ver">
+      <button type="button" data-mostrar="ambos" aria-pressed="true">Los dos</button>
+      <button type="button" data-mostrar="mio" aria-pressed="false">Mi golpe</button>
+      <button type="button" data-mostrar="ideal" aria-pressed="false">Bien pegado</button>
     </div>
     <div class="ctrl">
       <button type="button" id="repetir">Repetir</button>
       <button type="button" id="lento" aria-pressed="false">Lento</button>
     </div>
     <input id="tiempo" class="tiempo" type="range" min="0" max="1000" value="1000" aria-label="Momento del swing">
-    <p class="nota">Los desplazamientos están exagerados para que se noten en el celular, y el vuelo de la bola no está a escala. La raya en el piso marca el punto más bajo del swing; la línea azul que sube desde la bola es el plano.</p>
+    <p class="nota">Exagerado para que se note en el celular: el cuerpo por el ataque ×3 y el plano por la línea ×2. En Impacto, el ángulo entre la cara y la línea se ve al doble. Cerca del impacto la animación va a ¼ de velocidad. El vuelo de la bola no está a escala; la raya en el piso marca el punto más bajo del swing.</p>
     <p class="nota" id="nota-pantalla" hidden>Este iPhone puede apagar la pantalla. Si te estorba, sube el bloqueo automático en Ajustes, Pantalla y brillo.</p>
   </section>
   <button type="button" class="nuevo" id="nuevo">Nuevo tiro</button>

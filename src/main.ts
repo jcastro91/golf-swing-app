@@ -1,7 +1,8 @@
 import './style.css';
 import { PALOS, paloPorId } from './datos/palos';
 import { golpeIdeal } from './logica/aNumeros';
-import { Visor, type Vista } from './tres/escena';
+import type { Area } from './logica/diagnostico';
+import { Visor, type Mostrar, type Vista } from './tres/escena';
 import { montarCampo } from './ui/campo';
 import { cargar, guardar } from './ui/memoria';
 import { montarPreciso } from './ui/preciso';
@@ -12,16 +13,22 @@ const estado = cargar();
 const visor = new Visor($<HTMLCanvasElement>('#lienzo'));
 let firmaVisor = '';
 
+/** La vista que mejor muestra cada error. */
+const VISTA_DEL_ERROR: Record<Area, Vista> = { ataque: 'frente', caraLinea: 'impacto', linea: 'atras', lanz: 'frente' };
+
 function actualizar(inmediato = true) {
   guardar(estado);
   const p = paloPorId(estado.palo);
-  const golpe = estado.pestana === 'campo' ? pintarCampo(p) : pintarPreciso(p);
+  const { golpe, primero } = estado.pestana === 'campo' ? pintarCampo(p) : pintarPreciso(p);
   // El visor solo se reinicia si cambió lo que se anima.
   const firma = JSON.stringify([p.id, golpe]);
   if (firma === firmaVisor) return;
   firmaVisor = firma;
   clearTimeout(espera);
-  const mostrar = () => visor.mostrar(p, golpe, golpeIdeal(p));
+  const mostrar = () => {
+    if (golpe) elegirVista(primero ? VISTA_DEL_ERROR[primero] : 'frente');
+    visor.mostrar(p, golpe, golpeIdeal(p));
+  };
   if (inmediato) mostrar();
   else espera = window.setTimeout(mostrar, 450);
 }
@@ -68,20 +75,27 @@ document.querySelectorAll<HTMLButtonElement>('[data-pestana]').forEach((b) =>
 pintarPestanas();
 
 // Controles del visor
-const pintarVista = () =>
+function elegirVista(v: Vista) {
+  estado.vista = v;
+  visor.setVista(v);
   document.querySelectorAll<HTMLButtonElement>('[data-vista]').forEach((b) => {
-    b.setAttribute('aria-pressed', String(b.dataset.vista === estado.vista));
+    b.setAttribute('aria-pressed', String(b.dataset.vista === v));
   });
+  guardar(estado);
+}
 document.querySelectorAll<HTMLButtonElement>('[data-vista]').forEach((b) =>
+  b.addEventListener('click', () => elegirVista(b.dataset.vista as Vista)),
+);
+elegirVista(estado.vista);
+
+document.querySelectorAll<HTMLButtonElement>('[data-mostrar]').forEach((b) =>
   b.addEventListener('click', () => {
-    estado.vista = b.dataset.vista as Vista;
-    visor.setVista(estado.vista);
-    pintarVista();
-    guardar(estado);
+    document.querySelectorAll<HTMLButtonElement>('[data-mostrar]').forEach((o) => {
+      o.setAttribute('aria-pressed', String(o === b));
+    });
+    visor.setMostrar(b.dataset.mostrar as Mostrar);
   }),
 );
-visor.setVista(estado.vista);
-pintarVista();
 
 $('#repetir').addEventListener('click', () => visor.repetir());
 const lento = $('#lento');

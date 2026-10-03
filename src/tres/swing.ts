@@ -8,14 +8,15 @@ import type { Golpe } from '../logica/tipos';
  *
  * El palo sigue el modelo del prototipo: un arco alrededor del centro de los hombros C,
  * con el punto más bajo desplazado según el ataque y el plano rotado según la línea en la bajada.
- * El cuerpo se acomoda a ese arco y los brazos se resuelven con IK de dos huesos.
+ * Las manos giran en un plano más vertical que el del palo, para que los brazos cuelguen de los
+ * hombros en el setup. El cuerpo se acomoda a ese arco y brazos y piernas se resuelven con IK.
  */
 
 /**
  * Cuánto se exagera cada efecto para que se note en el celular.
  * Cara y línea comparten factor para que la cara a línea dibujada conserve el signo de la real.
  */
-export const EXAG = { ataque: 2, caraLinea: 1.5, curva: 1.5 };
+export const EXAG = { ataque: 3, caraLinea: 2, curva: 1.5 };
 
 
 export const T_TOPE = 0.48;
@@ -48,7 +49,7 @@ const KF_GIRO = [
 const rad = (d: number) => (d * Math.PI) / 180;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** Ángulo de cara o línea tal como se dibuja. El tope es el mismo para las dos (monótono, no cambia el signo). */
-const dibujado = (v: number) => clamp(v * EXAG.caraLinea, -40, 40);
+export const dibujado = (v: number) => clamp(v * EXAG.caraLinea, -40, 40);
 const suave = (u: number) => u * u * (3 - 2 * u);
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 
@@ -68,7 +69,16 @@ const X = new Vector3(1, 0, 0);
 const Y = new Vector3(0, 1, 0);
 
 export const RADIO_BOLA = 2.13;
-const RH = 52; // centro de hombros a manos
+const RH = 60; // centro de hombros a manos
+/** Postura: columna inclinada 35° desde la cadera, rodillas flexionadas ~20°. */
+const TORSO = 58;
+const INCL_COLUMNA = rad(35);
+const MUSLO = 44;
+const PIERNA = 44;
+const FLEX_RODILLA = rad(20);
+export const BRAZO = 29;
+export const ANTEBRAZO = 33;
+export const LARGO_PIERNA = MUSLO;
 
 /** Constantes de un golpe que no cambian durante la animación. */
 export interface Geo {
@@ -78,6 +88,7 @@ export interface Geo {
   R: number;
   Lc: number;
   u: Vector3;
+  uh: Vector3;
   cr: Vector3;
   ballY: number;
   lowX: number;
@@ -92,28 +103,37 @@ export interface Geo {
 
 export function crearGeo(p: Palo, g: Golpe): Geo {
   const pa = rad(p.pl);
-  const R = p.R;
+  const ph = rad(Math.min(80, p.pl + 15)); // plano de las manos
+  const Lc = p.R - 52; // largo efectivo del palo
+  const R = RH + Lc;
   const ylow = p.tee ? 1.5 : g.ataque < 0 ? -1 : 0;
-  const cz = -R * Math.cos(pa);
+  const cy = ylow + RH * Math.sin(ph) + Lc * Math.sin(pa);
+  const cz = -(RH * Math.cos(ph) + Lc * Math.cos(pa));
+  // Pies fijos: debajo de la cadera, a la distancia que deja las rodillas flexionadas ~20°.
+  const caderaY = cy - TORSO * Math.cos(INCL_COLUMNA);
+  const caderaZ = cz - TORSO * Math.sin(INCL_COLUMNA);
+  const dPierna = (MUSLO + PIERNA) * Math.cos(FLEX_RODILLA / 2);
+  const vPierna = caderaY - 8;
   const sinAt = (a: number) => Math.sin(rad(clamp(a, -12, 12)));
   return {
     p,
     g,
     pa,
     R,
-    Lc: R - RH,
+    Lc,
     u: new Vector3(0, -Math.sin(pa), Math.cos(pa)),
+    uh: new Vector3(0, -Math.sin(ph), Math.cos(ph)),
     cr: new Vector3(0, Math.cos(pa), Math.sin(pa)),
     ballY: p.tee ? 4.6 : RADIO_BOLA,
     lowX: -EXAG.ataque * R * sinAt(g.ataque),
     ylow,
-    cy: ylow + R * Math.sin(pa),
+    cy,
     cz,
     // En el setup las dos figuras empiezan igual, con la postura de un golpe bien pegado.
     cxSetup: -EXAG.ataque * R * sinAt(mitad(p.at)) * 0.4,
     rhoF: Math.asin(clamp(Math.sin(rad(dibujado(g.linea))) / Math.sin(pa), -1, 1)),
     x0: -p.fwd,
-    fz: cz - 8,
+    fz: caderaZ + Math.sqrt(Math.max(0, dPierna * dPierna - vPierna * vPierna)),
   };
 }
 
@@ -192,12 +212,13 @@ export function palo(geo: Geo, t: number) {
   a += (Math.asin(clamp(cx / (geo.R * Math.cos(rho)), -1, 1)) * 180) / Math.PI * w;
   const ar = rad(a);
   const abr = rad(a + b);
-  const H = C.clone().addScaledVector(geo.u, RH * Math.cos(ar)).addScaledVector(e, -RH * Math.sin(ar));
+  const H = C.clone().addScaledVector(geo.uh, RH * Math.cos(ar)).addScaledVector(e, -RH * Math.sin(ar));
   const K = H.clone().addScaledVector(geo.u, geo.Lc * Math.cos(abr)).addScaledVector(e, -geo.Lc * Math.sin(abr));
   // Dirección en la que se mueve la cabeza en la bajada: hacia donde mira la cara.
-  const tan = geo.u
+  const tan = geo.uh
     .clone()
-    .multiplyScalar(RH * Math.sin(ar) + geo.Lc * Math.sin(abr))
+    .multiplyScalar(RH * Math.sin(ar))
+    .addScaledVector(geo.u, geo.Lc * Math.sin(abr))
     .addScaledVector(e, RH * Math.cos(ar) + geo.Lc * Math.cos(abr))
     .normalize();
   return { C, H, K, tan };
@@ -207,7 +228,11 @@ export function pose(geo: Geo, t: number): Pose {
   const { C, H, K, tan } = palo(geo, t);
   const [gs, gh] = tramo(KF_GIRO, t);
 
-  const cadera = new Vector3(geo.x0 + (C.x - geo.x0) * 0.6, geo.cy - 50, geo.cz - 26);
+  const cadera = new Vector3(
+    geo.x0 + (C.x - geo.x0) * 0.6,
+    geo.cy - TORSO * Math.cos(INCL_COLUMNA),
+    geo.cz - TORSO * Math.sin(INCL_COLUMNA),
+  );
   const s = C.clone().sub(cadera).normalize();
 
   // Hombro de atrás un poco más bajo en el setup; el giro es alrededor de la columna.
@@ -228,14 +253,15 @@ export function pose(geo: Geo, t: number): Pose {
   const talon = t > 0.72 ? suave(Math.min(1, (t - 0.72) / 0.2)) : 0;
   const tobilloA = new Vector3(geo.x0 + 22, 8, geo.fz);
   const tobilloT = new Vector3(geo.x0 - 22 + 9 * talon, 8 + 7 * talon, geo.fz + 3 * talon);
-  const rodillaA = ik(caderaA, tobilloA, 43, 43, new Vector3(0.25, 0, 1));
-  const rodillaT = ik(caderaT, tobilloT, 43, 43, new Vector3(0.1 + 0.8 * talon, 0, 1));
+  const rodillaA = ik(caderaA, tobilloA, MUSLO, PIERNA, new Vector3(0.25, 0, 1));
+  const rodillaT = ik(caderaT, tobilloT, MUSLO, PIERNA, new Vector3(0.1 + 0.8 * talon, 0, 1));
 
   const sd = K.clone().sub(H).normalize();
   const manoA = H;
   const manoT = H.clone().addScaledVector(sd, 7);
-  const codoA = ik(hombroA, manoA, 29, 31, new Vector3(0.3, -1, -0.6));
-  const codoT = ik(hombroT, manoT, 29, 31, new Vector3(-0.3, -1, -0.6));
+  // Codos hacia abajo y hacia el cuerpo: brazos sueltos.
+  const codoA = ik(hombroA, manoA, BRAZO, ANTEBRAZO, new Vector3(0.2, -1, -0.3));
+  const codoT = ik(hombroT, manoT, BRAZO, ANTEBRAZO, new Vector3(-0.2, -1, -0.3));
 
   // Base de la cabeza del palo: la cara mira hacia donde se mueve, la punta sale hacia la bola.
   const cara = tan.clone();
@@ -257,8 +283,12 @@ export function pose(geo: Geo, t: number): Pose {
   };
 }
 
-/** Recorrido de la cabeza del palo en la bajada y el inicio del final. */
-export const T_TRAZO: [number, number] = [T_TOPE, 0.8];
+/**
+ * Recorrido de la cabeza del palo, sin el arco completo. Desde atrás se ve desde la bajada (ahí se nota
+ * si viene por encima o por debajo del plano); de frente, solo cerca del impacto (T_TRAZO_FRENTE).
+ */
+export const T_TRAZO: [number, number] = [0.56, 0.76];
+export const T_TRAZO_FRENTE = 0.655;
 export function trazoPalo(geo: Geo, n = 48): Vector3[] {
   const r: Vector3[] = [];
   for (let i = 0; i <= n; i++) r.push(palo(geo, lerp(T_TRAZO[0], T_TRAZO[1], i / n)).K);
@@ -280,6 +310,11 @@ export function vuelo(geo: Geo, n = 48): Vector3[] {
     r.push(new Vector3(DIST_VUELO * q, geo.ballY + 4 * alto * q * (1 - q), DIST_VUELO * (q * Math.tan(dir) + k * q * q)));
   }
   return r;
+}
+
+/** Huella del vuelo en el piso, corta, para la vista Impacto (misma forma que el vuelo). */
+export function vueloPiso(geo: Geo, largo = 170, n = 32): Vector3[] {
+  return vuelo(geo, n).map((v) => new Vector3((v.x / DIST_VUELO) * largo, 0.4, (v.z / DIST_VUELO) * largo));
 }
 
 /** Línea del plano: de la bola a las manos en el setup. */

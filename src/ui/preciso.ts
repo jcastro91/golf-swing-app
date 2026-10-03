@@ -1,7 +1,7 @@
 import type { Palo } from '../datos/palos';
 import { TODO_BIEN } from '../datos/textos';
 import { precisoAGolpe } from '../logica/aNumeros';
-import { diagnosticoPreciso, fmtS } from '../logica/diagnostico';
+import { diagnosticoPreciso, fmtS, type Area } from '../logica/diagnostico';
 import type { Golpe, TiroPreciso } from '../logica/tipos';
 import { htmlHallazgos, htmlTabla } from './diagnosticoHtml';
 import type { PrecisoCrudo } from './memoria';
@@ -58,7 +58,7 @@ export function montarPreciso(crudo: PrecisoCrudo, alCambiar: () => void) {
   }
   pintarLados();
 
-  return function pintar(p: Palo): Golpe | null {
+  return function pintar(p: Palo): { golpe: Golpe | null; primero: Area | null } {
     $('#ref-palo').innerHTML =
       `<b>${p.nombre}</b> · Bola: ${p.bola} · Ataque ${fmtS(p.at[0])} a ${fmtS(p.at[1])} · ` +
       `Lanzamiento ${p.la[0]}–${p.la[1]}°`;
@@ -66,10 +66,10 @@ export function montarPreciso(crudo: PrecisoCrudo, alCambiar: () => void) {
     const d = leer(crudo);
     if (!d) {
       caja.innerHTML = '<p class="vacio">Escribe línea, cara y ataque tal como salen en el R10.</p>';
-      return null;
+      return { golpe: null, primero: null };
     }
     const { filas, hallazgos } = diagnosticoPreciso(p, d);
     caja.innerHTML = htmlTabla(filas) + (hallazgos.length ? htmlHallazgos(hallazgos) : `<p class="bien">${TODO_BIEN}</p>`);
-    return precisoAGolpe(d);
+    return { golpe: precisoAGolpe(d), primero: hallazgos[0]?.area ?? null };
   };
 }

@@ -2,6 +2,7 @@ import {
   BoxGeometry,
   CapsuleGeometry,
   CylinderGeometry,
+  EdgesGeometry,
   Group,
   IcosahedronGeometry,
   Matrix4,
@@ -11,8 +12,11 @@ import {
   type BufferGeometry,
   type Material,
 } from 'three';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import type { Palo } from '../datos/palos';
-import { RADIO_BOLA, type Pose } from './swing';
+import { ANTEBRAZO, BRAZO, LARGO_PIERNA, RADIO_BOLA, type Pose } from './swing';
 
 /*
  * Figura low-poly hecha con primitivas. Cada cuadro se calculan las articulaciones en el
@@ -26,10 +30,10 @@ const tmp = new Vector3();
 // Geometrías compartidas entre las dos figuras.
 const capsula = (r: number, largo: number) => new CapsuleGeometry(r, largo, 2, 6);
 const G = {
-  brazo: capsula(4.6, 29),
-  antebrazo: capsula(4, 31),
-  muslo: capsula(7, 43),
-  pierna: capsula(5.5, 43),
+  brazo: capsula(4.6, BRAZO),
+  antebrazo: capsula(4, ANTEBRAZO),
+  muslo: capsula(7, LARGO_PIERNA),
+  pierna: capsula(5.5, LARGO_PIERNA),
   cuello: capsula(4.5, 8),
   mano: new SphereGeometry(4.3, 6, 4),
   cabeza: new IcosahedronGeometry(11, 1),
@@ -47,6 +51,18 @@ const G = {
   varilla: new CylinderGeometry(0.6, 0.5, 1, 5),
 };
 const LARGO_GRIP = 26;
+
+/** Solo las aristas marcadas (ángulo entre caras > 35°): contorno legible, sin la malla completa. */
+const UMBRAL_ARISTA = 35;
+const cacheAristas = new Map<string, LineSegmentsGeometry>();
+function aristas(g: BufferGeometry): LineSegmentsGeometry {
+  let a = cacheAristas.get(g.uuid);
+  if (!a) {
+    a = new LineSegmentsGeometry().fromEdgesGeometry(new EdgesGeometry(g, UMBRAL_ARISTA));
+    cacheAristas.set(g.uuid, a);
+  }
+  return a;
+}
 
 function cabezaPalo(p: Palo): BufferGeometry {
   if (p.tee) return new BoxGeometry(11.5, 6, 10);
@@ -82,11 +98,17 @@ export class Maniqui {
   private m: Record<string, Mesh> = {};
   private dimCabeza = new Vector3();
 
-  constructor(private mat: Materiales) {
+  /**
+   * Con `contorno`, cada pieza lleva sus aristas como hijo (mismo transform). La malla queda
+   * solo para la profundidad, así las aristas de atrás de la figura no se ven.
+   */
+  constructor(
+    private mat: Materiales,
+    private contorno?: LineMaterial,
+  ) {
     const c = mat.cuerpo;
     const add = (n: string, g: BufferGeometry, mt: Material = c) => {
-      const mesh = new Mesh(g, mt);
-      mesh.matrixAutoUpdate = true;
+      const mesh = this.pieza(g, mt);
       this.m[n] = mesh;
       this.grupo.add(mesh);
     };
@@ -107,17 +129,29 @@ export class Maniqui {
     add('varilla', G.varilla, mat.varilla);
   }
 
+  private pieza(g: BufferGeometry, mt: Material): Mesh {
+    const mesh = new Mesh(g, mt);
+    if (this.contorno) {
+      const lineas = new LineSegments2(aristas(g), this.contorno);
+      lineas.renderOrder = 1; // después de la profundidad
+      mesh.add(lineas);
+    }
+    return mesh;
+  }
+
   /** La cabeza del palo cambia con el palo elegido. */
   setPalo(p: Palo) {
     const viejo = this.m.cabezaPalo;
     if (viejo) {
       this.grupo.remove(viejo);
+      cacheAristas.get(viejo.geometry.uuid)?.dispose();
+      cacheAristas.delete(viejo.geometry.uuid);
       viejo.geometry.dispose();
     }
     const g = cabezaPalo(p);
     g.computeBoundingBox();
     g.boundingBox!.getSize(this.dimCabeza);
-    const mesh = new Mesh(g, this.mat.cabezaPalo);
+    const mesh = this.pieza(g, this.mat.cabezaPalo);
     this.m.cabezaPalo = mesh;
     this.grupo.add(mesh);
   }
@@ -136,17 +170,17 @@ export class Maniqui {
     m.cabeza.position.copy(q.cabeza);
     conBase(m.visera, q.lc, q.s, q.fc, q.cabeza.clone().addScaledVector(q.s, 6).addScaledVector(q.fc, 9));
 
-    entre(m.brazoA, q.hombroA, q.codoA, 29);
-    entre(m.antebrazoA, q.codoA, q.manoA, 31);
-    entre(m.brazoT, q.hombroT, q.codoT, 29);
-    entre(m.antebrazoT, q.codoT, q.manoT, 31);
+    entre(m.brazoA, q.hombroA, q.codoA, BRAZO);
+    entre(m.antebrazoA, q.codoA, q.manoA, ANTEBRAZO);
+    entre(m.brazoT, q.hombroT, q.codoT, BRAZO);
+    entre(m.antebrazoT, q.codoT, q.manoT, ANTEBRAZO);
     m.manoA.position.copy(q.manoA);
     m.manoT.position.copy(q.manoT);
 
-    entre(m.musloA, q.caderaA, q.rodillaA, 43);
-    entre(m.piernaA, q.rodillaA, q.tobilloA, 43);
-    entre(m.musloT, q.caderaT, q.rodillaT, 43);
-    entre(m.piernaT, q.rodillaT, q.tobilloT, 43);
+    entre(m.musloA, q.caderaA, q.rodillaA, LARGO_PIERNA);
+    entre(m.piernaA, q.rodillaA, q.tobilloA, LARGO_PIERNA);
+    entre(m.musloT, q.caderaT, q.rodillaT, LARGO_PIERNA);
+    entre(m.piernaT, q.rodillaT, q.tobilloT, LARGO_PIERNA);
     m.pieA.position.set(q.tobilloA.x + 2, 3.5, q.tobilloA.z + 7);
     m.pieA.rotation.set(0, 0.25, 0);
     // En el final el pie de atrás queda en la punta.

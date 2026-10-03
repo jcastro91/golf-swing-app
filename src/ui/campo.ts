@@ -1,7 +1,7 @@
 import type { Palo } from '../datos/palos';
 import { TODO_BIEN } from '../datos/textos';
 import { rapidoAGolpe } from '../logica/aNumeros';
-import { diagnosticoRapido } from '../logica/diagnostico';
+import { diagnosticoRapido, type Area } from '../logica/diagnostico';
 import { rapidoCompleto, type Golpe, type TiroRapido } from '../logica/tipos';
 import { htmlHallazgos } from './diagnosticoHtml';
 
@@ -36,15 +36,15 @@ export function montarCampo(rapido: TiroRapido, alCambiar: () => void) {
 
   pintarBotones();
 
-  /** Pinta el diagnóstico y devuelve el golpe a animar (null si faltan datos). */
-  return function pintar(p: Palo): Golpe | null {
+  /** Pinta el diagnóstico y devuelve el golpe a animar (null si faltan datos) y el primer error. */
+  return function pintar(p: Palo): { golpe: Golpe | null; primero: Area | null } {
     const caja = $('#diag-campo');
     if (!rapidoCompleto(rapido)) {
       caja.innerHTML = '<p class="vacio">Marca los tres datos del tiro.</p>';
-      return null;
+      return { golpe: null, primero: null };
     }
     const h = diagnosticoRapido(p, rapido);
     caja.innerHTML = h.length ? htmlHallazgos(h) : `<p class="bien">${TODO_BIEN}</p>`;
-    return rapidoAGolpe(p, rapido);
+    return { golpe: rapidoAGolpe(p, rapido), primero: h[0]?.area ?? null };
   };
 }

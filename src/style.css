@@ -2,7 +2,7 @@
   --azul: #1c355e;
   --gris: #e1e3e8;
   --naranja: #ff8030;
-  --fantasma: #8d95ad;
+  --fantasma: rgba(28, 53, 94, 0.5);
   --suave: #3f5170;
   --fondo: #ffffff;
   /* Áreas seguras (notch, barra de inicio). Como variables para poder simularlas en pruebas. */
@@ -136,6 +136,22 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--naranja); o
 
 /* Visor */
 .visor { margin-top: 14px; }
+.lienzo-caja { position: relative; overflow: hidden; }
+.etiquetas { position: absolute; inset: 0; pointer-events: none; }
+.etiqueta {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 2px 6px;
+  background: #fff;
+  color: var(--azul);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-left: 4px solid var(--azul);
+}
+.etiqueta.e-mio { border-left-color: var(--naranja); }
+.etiqueta.e-plano { border-left-color: #60728e; }
 #lienzo {
   display: block;
   width: 100%;
@@ -149,8 +165,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--naranja); o
 .ley { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 8px 16px 0; font-size: 15px; font-weight: 700; }
 .ley span::before { content: ""; display: inline-block; width: 16px; height: 12px; margin-right: 6px; vertical-align: -1px; }
 .ley .mio::before { background: var(--naranja); }
-.ley .ideal::before { background: var(--fantasma); }
+.ley .ideal::before { background: rgba(28, 53, 94, 0.15); border: 2px solid var(--azul); box-sizing: border-box; }
 .ctrl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 6px 16px 0; }
+.ctrl.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .ctrl button { font-size: 15px; padding: 0 4px; }
 .tiempo { display: block; width: calc(100% - 32px); height: 44px; margin: 4px 16px 0; accent-color: var(--azul); }
 .nota { margin: 6px 16px 0; font-size: 13px; line-height: 1.4; color: var(--suave); }
