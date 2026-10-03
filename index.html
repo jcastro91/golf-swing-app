@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Golpe R10">
+<meta name="description" content="Diagnóstico de cada tiro con el Garmin R10 en el campo de práctica.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png">
+<title>Golpe R10</title>
+</head>
+<body>
+<header class="palos" id="palos" role="radiogroup" aria-label="Palo"></header>
+
+<main>
+  <section id="campo" aria-label="Tiro en el campo">
+    <div class="dato">
+      <h2 id="h-ataque">Ángulo de ataque</h2>
+      <div class="seg dos" data-campo="ataque" role="group" aria-labelledby="h-ataque">
+        <button type="button" data-v="+" aria-pressed="false">+</button>
+        <button type="button" data-v="-" aria-pressed="false" aria-label="menos">−</button>
+      </div>
+    </div>
+    <div class="dato">
+      <h2 id="h-cara">Cara a línea</h2>
+      <div class="seg tres" data-campo="caraLinea" role="group" aria-labelledby="h-cara">
+        <button type="button" data-v="I" aria-pressed="false">I</button>
+        <button type="button" data-v="OK" aria-pressed="false">OK<small>0 a 3</small></button>
+        <button type="button" data-v="D" aria-pressed="false">D</button>
+      </div>
+    </div>
+    <div class="dato">
+      <h2 id="h-linea">Línea cabeza del palo</h2>
+      <div class="seg tres" data-campo="linea" role="group" aria-labelledby="h-linea">
+        <button type="button" data-v="I" aria-pressed="false">I</button>
+        <button type="button" data-v="OK" aria-pressed="false">OK<small>0 a 3</small></button>
+        <button type="button" data-v="D" aria-pressed="false">D</button>
+      </div>
+    </div>
+    <div class="diag" id="diag-campo" aria-live="polite"></div>
+  </section>
+
+  <section id="preciso" aria-label="Modo preciso" hidden>
+    <p class="ref" id="ref-palo"></p>
+    <div class="dato">
+      <label class="lbl" for="p-linea">Línea cabeza del palo</label>
+      <div class="num">
+        <input id="p-linea" type="text" inputmode="decimal" autocomplete="off" placeholder="0.0">
+        <div class="seg dos" data-lado="linea"><button type="button" data-v="I" aria-pressed="false">I</button><button type="button" data-v="D" aria-pressed="false">D</button></div>
+      </div>
+    </div>
+    <div class="dato">
+      <label class="lbl" for="p-cara">Cara del palo</label>
+      <div class="num">
+        <input id="p-cara" type="text" inputmode="decimal" autocomplete="off" placeholder="0.0">
+        <div class="seg dos" data-lado="cara"><button type="button" data-v="I" aria-pressed="false">I</button><button type="button" data-v="D" aria-pressed="false">D</button></div>
+      </div>
+    </div>
+    <div class="dato">
+      <label class="lbl" for="p-ataque">Ángulo de ataque</label>
+      <div class="num">
+        <input id="p-ataque" type="text" inputmode="decimal" autocomplete="off" placeholder="0.0">
+        <div class="seg dos" data-lado="ataque"><button type="button" data-v="+" aria-pressed="false">+</button><button type="button" data-v="-" aria-pressed="false" aria-label="menos">−</button></div>
+      </div>
+    </div>
+    <div class="dato">
+      <label class="lbl" for="p-lanz">Ángulo de lanzamiento <span>opcional, para comprobar</span></label>
+      <div class="num">
+        <input id="p-lanz" type="text" inputmode="decimal" autocomplete="off" placeholder="—">
+        <span class="unidad">°</span>
+      </div>
+    </div>
+    <div class="diag" id="diag-preciso" aria-live="polite"></div>
+  </section>
+
+  <section class="visor" aria-label="Maniquí 3D">
+    <canvas id="lienzo" aria-label="Maniquí 3D con tu golpe y uno bien pegado"></canvas>
+    <div class="ley"><span class="mio">Mi golpe</span><span class="ideal">Bien pegado</span></div>
+    <div class="ctrl">
+      <button type="button" data-vista="frente" aria-pressed="true">De frente</button>
+      <button type="button" data-vista="atras" aria-pressed="false">Desde atrás</button>
+      <button type="button" id="repetir">Repetir</button>
+      <button type="button" id="lento" aria-pressed="false">Lento</button>
+    </div>
+    <input id="tiempo" class="tiempo" type="range" min="0" max="1000" value="1000" aria-label="Momento del swing">
+    <p class="nota">Los desplazamientos están exagerados para que se noten en el celular, y el vuelo de la bola no está a escala. La raya en el piso marca el punto más bajo del swing; la línea azul que sube desde la bola es el plano. Gira la vista con el dedo.</p>
+    <p class="nota" id="nota-pantalla" hidden>Este iPhone puede apagar la pantalla. Si te estorba, sube el bloqueo automático en Ajustes, Pantalla y brillo.</p>
+  </section>
+  <button type="button" class="nuevo" id="nuevo">Nuevo tiro</button>
+</main>
+
+<nav class="pestanas" role="tablist">
+  <button type="button" role="tab" data-pestana="campo" aria-selected="true">Campo</button>
+  <button type="button" role="tab" data-pestana="preciso" aria-selected="false">Preciso</button>
+</nav>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
